@@ -47,23 +47,29 @@ def basicSatCalc():
     
     return result
 
-def eqCheck():
+def eqCheck(implClauses, specClauses):
     # check (!impl AND spec), then check (impl AND !spec)
     implAndNotSpecSat = False
     notImplAndSpecSat = False
     
     #(impl AND !spec)
     solver = Solver(name="glucose3")
-    result = solver.solve()
-    if result:
-        implAndNotSpecSat = True
+    for clause in implClauses:
+        solver.add_clause(clause)
+    for clause in specClauses:
+        solver.add_clause([-lit for lit in clause])
+        
+    implAndNotSpecSat = solver.solve()
     solver.delete()
     
     #(!impl AND Spec)
     solver = Solver(name="glucose3")
-    result = solver.solve()
-    if result:
-        notImplAndSpecSatSat = True
+    for clause in specClauses:
+        solver.add_clause(clause)
+    for clause in implClauses:
+        solver.add_clause([-lit for lit in clause])
+        
+    notImplAndSpecSat = solver.solve()
     solver.delete()
 
     # if either SAT, CIRCUITS NOT EQ
@@ -112,6 +118,7 @@ def iterativeSatCalc():
     #    - Go back to step 5 to search for another counterexample
     
     solver = Solver(name='glucose3')
+    solver.add_clause(['1', '2'])
     if solver.solve():
         result == "SAT"
         solutions.append(solver.get_model())
@@ -120,6 +127,8 @@ def iterativeSatCalc():
     if (target == "SAT"):
         k += 1
         testSet.append(solutions)
+        
+    solver.delete()
         
 
     # 7) If Target is UNSAT:
@@ -135,17 +144,46 @@ def iterativeSatCalc():
     
     if (target == "UNSAT"):
         solver = Solver(name="glucose")
+        solver.add_clause(['1', '2'])
         solver.solve()
         if ("SAT"):
             print("solution exists: " + solver.getmodel())
         else:
             print("no solution exists")
 
+    solver.delete()
+    
     return
 
     
 def main():
-    basicSatCalc()
+    
+    print("1: EQ Check, 2: Basic SAT Call, 3: IterativePatchSAT")
+    op = int(input("Enter an operation: "))
+    
+    """ 
+    Eq Check
+    """
+    if (op == 1):
+        specClauseList, specNumClauses, specVars = parseCnfFile("spec.txt")
+        implClauseList, implNumClauses, implVars = parseCnfFile("impl.txt")
+        eqCheck(implClauseList, specClauseList)
+    
+    """
+    Simple Sat Calc
+    """
+
+    if (op == 2):
+        basicSatCalc()
+    
+    """
+    Iterative Calc
+    """
+    
+    if (op == 3):
+        iterativeSatCalc()
+        
+        
 
 if __name__ == "__main__":
     main()
