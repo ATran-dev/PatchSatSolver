@@ -81,13 +81,17 @@ def eqCheck(implClauses, specClauses):
     
     return
 
-def iterativeSatCalc():
+def iterativeSatCalc(implClauseList, specClauseList, paramVars, inVars):
     # 1) Let circuit(X, In) be the formula representing the circuit 
     #    with given transformations encoded.
     #    - X: set of parameter variables for transformations
     #    - In: set of primary input variables of the circuit
 
+
     # 2) Let spec(In) be the formula representing the specification.
+    
+    inVars = set(inVars)        
+    paramVars = set(paramVars)  
 
     # 3) Initialize:
     #    k = 0  # number of test vectors found
@@ -100,13 +104,14 @@ def iterativeSatCalc():
     #    Target = (circuit(X, In) != spec(In))
     #    - X and In are variables to be solved by a SAT solver
     
-    target = ""
-
+    miter_solver = Solver(name="glucose3")
+    for clause in implClauseList:
+        miter_solver.add_clause(clause)
+    for clause in specClauseList:
+        miter_solver.add_clause(clause)
+        
     # 5) Check if Target is satisfiable using a SAT solver.
     #    - This is a normal SAT problem.
-    
-    result = ""
-    solutions = []
     
     # 6) If Target is SAT:
     #    - Increment k: k = k + 1
@@ -117,19 +122,23 @@ def iterativeSatCalc():
     #      Target = Target ∧ (circuit(X, ink) == spec(ink))
     #    - Go back to step 5 to search for another counterexample
     
-    solver = Solver(name='glucose3')
-    solver.add_clause(['1', '2'])
-    if solver.solve():
-        result == "SAT"
-        solutions.append(solver.get_model())
-        
-    target = ""
-    if (target == "SAT"):
+    while True:
+        if not miter_solver.solve():
+            # UNSAT: no counterexample found, proceed to final check
+            break
+
+        model = miter_solver.get_model()
         k += 1
-        testSet.append(solutions)
-        
-    solver.delete()
-        
+
+        # Extract input assignments only
+        inK = [lit for lit in model if abs(lit) in inVars]
+        testSet.append(inK)
+
+        # Block this input assignment so we find a new one next iteration
+        blocking_clause = [-lit for lit in inK]
+        miter_solver.add_clause(blocking_clause)
+
+    miter_solver.delete()
 
     # 7) If Target is UNSAT:
     #    - Check if the formula below is satisfiable:
@@ -142,18 +151,26 @@ def iterativeSatCalc():
     #    - Else:
     #      - No correct set of transformations exists
     
-    if (target == "UNSAT"):
-        solver = Solver(name="glucose")
-        solver.add_clause(['1', '2'])
-        solver.solve()
-        if ("SAT"):
-            print("solution exists: " + solver.getmodel())
-        else:
-            print("no solution exists")
+    if not testSet:
+        print("Circuits equivalent for all inputs found")
+        return
 
-    solver.delete()
-    
-    return
+    # Final check: does any X (param assignment) satisfy all test vectors?
+    final_solver = Solver(name="glucose3")
+
+    for clause in implClauseList:
+        final_solver.add_clause(clause)
+
+    for inK in testSet:
+        # Force this specific input assignment as assumptions
+        assumptions = [lit for lit in inK]
+        if not final_solver.solve(assumptions=assumptions):
+            print("No solution exists")
+            final_solver.delete()
+            return
+
+    print("Solution exists:", final_solver.get_model())
+    final_solver.delete()
 
     
 def main():
@@ -178,7 +195,11 @@ def main():
     Iterative Calc
     """
     if (op == 3):
-        iterativeSatCalc()
+        specClauseList, specNumClauses, specVars = parseCnfFile("spec.txt")
+        implClauseList, implNumClauses, implVars = parseCnfFile("impl.txt")
+        inVars = list(range(1, implVars + 1))     
+        paramVars = list(range(implVars + 1, specVars + 1))
+        iterativeSatCalc(implClauseList, specClauseList, paramVars, inVars)
         
         
 
