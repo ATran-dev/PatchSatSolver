@@ -167,19 +167,16 @@ def main():
     if (op == 1):
         specClauseList, specNumClauses, specVars = parseCnfFile("spec.txt")
         implClauseList, implNumClauses, implVars = parseCnfFile("impl.txt")
-        eqCheck(implClauseList, specClauseList)
-    
+        eqCheck(implClauseList, specClauseList)    
     """
     Simple Sat Calc
     """
-
     if (op == 2):
         basicSatCalc()
     
     """
     Iterative Calc
     """
-    
     if (op == 3):
         iterativeSatCalc()
         
