@@ -1,0 +1,10 @@
+c Buggy implementation example for the internal node w = a OR b
+c Variables:
+c   1 = a
+c   2 = b
+c   3 = w
+c Clauses encode: w <-> (a OR b)
+p cnf 3 3
+1 2 -3 0
+-1 3 0
+-2 3 0
