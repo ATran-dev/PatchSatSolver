@@ -55,6 +55,7 @@ class PatchSynthesizer:
 
     def add_constraint_from_counterexample(self, a: int, b: int, c: int) -> None:
         desired_patch_value = (a & b)
+        # desired_patch_value = 1 - (a & b)
         var = self.varmap[(a, b)]
         self.clauses.append([var] if desired_patch_value else [-var])
 
@@ -90,6 +91,9 @@ def verify_patch(patch: dict[tuple[int, int], int]) -> bool:
 
 
 def run():
+    
+    seen_ces = set()
+    
     print("=== Iterative SAT Patch Synthesis Demo ===")
     print("Spec circuit : f(a,b,c) = (a AND b) XOR c")
     print("Buggy circuit: f(a,b,c) = (a OR  b) XOR c")
@@ -121,6 +125,14 @@ def run():
             passed = verify_patch(patch)
             print("Verification passed." if passed else "Verification failed.")
             return
+        
+        if ce in seen_ces:
+            print("Repeated counterexample detected:", ce)
+            print("Stopping to avoid infinite loop.")
+            print("Patch is unable to be Found.")
+            return
+        
+        seen_ces.add(ce)
 
         print("Counterexample found:", ce)
         a, b, c = ce
