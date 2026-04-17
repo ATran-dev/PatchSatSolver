@@ -54,8 +54,7 @@ class PatchSynthesizer:
         self.clauses: list[list[int]] = []
 
     def add_constraint_from_counterexample(self, a: int, b: int, c: int) -> None:
-        desired_patch_value = (a & b)
-        # desired_patch_value = 1 - (a & b)
+        desired_patch_value = spec(a, b, c) ^ c
         var = self.varmap[(a, b)]
         self.clauses.append([var] if desired_patch_value else [-var])
 
